@@ -146,8 +146,8 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     user = realm.where(User.class).findAll();
     if (user != null) {
-      if (user.size() > 0)
-        Toast.makeText(this, "Images are There", Toast.LENGTH_SHORT).show();
+//      if (user.size() > 0)
+//        Toast.makeText(this, "Images are There", Toast.LENGTH_SHORT).show();
     }
 
     fabAdd = findViewById(R.id.fab_add);
