@@ -19,6 +19,8 @@ import android.graphics.Bitmap;
 import android.graphics.RectF;
 import java.util.List;
 
+import io.realm.RealmObject;
+
 /** Generic interface for interacting with different recognition engines. */
 public interface SimilarityClassifier {
 
@@ -37,7 +39,7 @@ public interface SimilarityClassifier {
   void setUseNNAPI(boolean isChecked);
 
   /** An immutable result returned by a Classifier describing what was recognized. */
-  public class Recognition {
+  public class Recognition /*extends RealmObject*/ {
     /**
      * A unique identifier for what has been recognized. Specific to the class, not the instance of
      * the object.
@@ -58,6 +60,16 @@ public interface SimilarityClassifier {
     private Integer color;
     private Bitmap crop;
 
+    public Recognition(
+            final String id, final String title, final Float distance) {
+      this.id = id;
+      this.title = title;
+      this.distance = distance;
+      this.location = null;
+      this.color = null;
+      this.extra = null;
+      this.crop = null;
+    }
     public Recognition(
             final String id, final String title, final Float distance, final RectF location) {
       this.id = id;

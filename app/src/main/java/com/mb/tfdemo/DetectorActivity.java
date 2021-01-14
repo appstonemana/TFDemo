@@ -47,10 +47,6 @@ import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
-
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 import com.mb.tfdemo.customview.OverlayView;
 import com.mb.tfdemo.customview.OverlayView.DrawCallback;
 import com.mb.tfdemo.env.BorderedText;
@@ -59,6 +55,14 @@ import com.mb.tfdemo.env.Logger;
 import com.mb.tfdemo.tflite.SimilarityClassifier;
 import com.mb.tfdemo.tflite.TFLiteObjectDetectionAPIModel;
 import com.mb.tfdemo.tracking.MultiBoxTracker;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+
+import io.realm.Realm;
+import io.realm.RealmResults;
 
 /**
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
@@ -130,10 +134,21 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
   //private HashMap<String, Classifier.Recognition> knownFaces = new HashMap<>();
 
+  private Realm realm;
+
+  private RealmResults<User> user;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    realm = Realm.getDefaultInstance();
+
+    user = realm.where(User.class).findAll();
+    if (user != null) {
+      if (user.size() > 0)
+        Toast.makeText(this, "Images are There", Toast.LENGTH_SHORT).show();
+    }
 
     fabAdd = findViewById(R.id.fab_add);
     fabAdd.setOnClickListener(new View.OnClickListener() {
@@ -294,6 +309,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     }
 
     InputImage image = InputImage.fromBitmap(croppedBitmap, 0);
+
     faceDetector
             .process(image)
             .addOnSuccessListener(new OnSuccessListener<List<Face>>() {
@@ -399,13 +415,40 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
       @Override
       public void onClick(DialogInterface dlg, int i) {
 
-          String name = etName.getText().toString();
-          if (name.isEmpty()) {
-              return;
+        String name = etName.getText().toString();
+        if (name.isEmpty()) {
+          return;
+        }
+        detector.register(name, rec);
+        Bitmap bmp = croppedBitmap;
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        byte[] byteArray = stream.toByteArray();
+//        bmp.recycle();
+
+        //knownFaces.put(name, rec);
+
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            realm.executeTransaction(new Realm.Transaction() {
+              @Override
+              public void execute(Realm realm1) {
+                Number currentIdNum = realm.where(User.class).max("id");
+                int nextId;
+                if (currentIdNum == null) {
+                  nextId = 1;
+                } else {
+                  nextId = currentIdNum.intValue() + 1;
+                }
+                User user = new User(nextId, byteArray);
+                realm1.insertOrUpdate(user);
+              }
+            });
           }
-          detector.register(name, rec);
-          //knownFaces.put(name, rec);
-          dlg.dismiss();
+        });
+
+        dlg.dismiss();
       }
     });
     builder.setView(dialogLayout);
